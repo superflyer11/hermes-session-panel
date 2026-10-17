@@ -1,6 +1,6 @@
 import unittest
 
-from plugin_api import parse_numstat, parse_status
+from plugin_api import parse_numstat, parse_status, summarize
 
 
 class ParseTests(unittest.TestCase):
@@ -14,6 +14,15 @@ class ParseTests(unittest.TestCase):
 
     def test_numstat_binary(self):
         self.assertEqual(parse_numstat('3\t1\ta.py\n-\t-\timg.png\n'), {'a.py': (3, 1), 'img.png': (0, 0)})
+
+
+    def test_summary(self):
+        cfg = {'mcp_servers': {'b': {'url': 'https://x'}, 'a': {'command': 'x', 'enabled': False}},
+               'compression': {'threshold': 0.6}}
+        self.assertEqual(summarize(cfg), {
+            'mcp': [{'name': 'a', 'enabled': False, 'kind': 'local'}, {'name': 'b', 'enabled': True, 'kind': 'remote'}],
+            'compression': {'enabled': True, 'threshold': 0.6, 'threshold_tokens': None}})
+        self.assertEqual(summarize({})['compression']['threshold'], 0.5)
 
 
 if __name__ == '__main__':

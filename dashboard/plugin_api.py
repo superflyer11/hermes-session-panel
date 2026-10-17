@@ -1,12 +1,15 @@
-"""Read-only git summary for the Session pane's Changes card.
+"""Read-only data routes for the Session pane.
 
-Runs `git status` and `git diff --numstat` in a folder the desktop passes in.
-Nothing is written; folders that are not git work trees return an empty list.
+/changes runs `git status` and `git diff --numstat` in a folder the desktop
+passes in; folders that are not git work trees return an empty list.
+/profile-summary reads the active profile's config.yaml for its MCP servers
+and compaction settings. Nothing is written.
 """
 import asyncio
 import os
 
 from fastapi import APIRouter, HTTPException
+import yaml
 
 router = APIRouter()
 MAX_FILES = 200
@@ -68,3 +71,40 @@ async def changes(path: str = ''):
     for f in files:
         f['added'], f['removed'] = counts.get(f['path'], (0, 0))
     return {'repo': True, 'total': len(files), 'files': files[:MAX_FILES]}
+
+
+def _profile_config():
+    try:
+        from hermes_constants import get_hermes_home
+        home = str(get_hermes_home())
+    except Exception:
+        home = os.path.expanduser('~/.hermes')
+    try:
+        with open(os.path.join(home, 'config.yaml'), encoding='utf-8') as fh:
+            return yaml.safe_load(fh) or {}
+    except (OSError, yaml.YAMLError):
+        return {}
+
+
+def summarize(cfg):
+    servers = []
+    for name, spec in sorted((cfg.get('mcp_servers') or {}).items()):
+        spec = spec if isinstance(spec, dict) else {}
+        kind = 'remote' if spec.get('url') else 'local'
+        servers.append({'name': name, 'enabled': spec.get('enabled', True) is not False, 'kind': kind})
+    comp = cfg.get('compression') or {}
+    threshold = comp.get('threshold', 0.5)
+    tokens = comp.get('threshold_tokens')
+    return {
+        'mcp': servers,
+        'compression': {
+            'enabled': comp.get('enabled', True) is not False,
+            'threshold': float(threshold) if isinstance(threshold, (int, float)) else 0.5,
+            'threshold_tokens': int(tokens) if isinstance(tokens, int) and tokens > 0 else None,
+        },
+    }
+
+
+@router.get('/profile-summary')
+async def profile_summary():
+    return summarize(_profile_config())

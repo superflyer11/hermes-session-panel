@@ -121,6 +121,12 @@ function SessionPanel() {
   )
   const changes = usePoll(() => (cwd && pluginCtx ? pluginCtx.rest(`/changes?path=${encodeURIComponent(cwd)}`) : null), cwd, 10000)
   const toolsets = usePoll(() => host.toolsets.list(), profile, 60000)
+  const summary = usePoll(() => (pluginCtx ? pluginCtx.rest('/profile-summary') : null), profile, 60000)
+  const history = usePoll(
+    () => (sessionId ? host.request('session.history', { session_id: sessionId }) : null),
+    `${sessionId}:${usage?.context_used ?? 0}`,
+    60000
+  )
   const procs =
     usePoll(() => (sessionId ? host.request('process.list', { session_id: sessionId }).then(r => r?.processes ?? []) : []), sessionId) ?? []
 
@@ -148,6 +154,21 @@ function SessionPanel() {
   }
 
   const enabledToolsets = (Array.isArray(toolsets) ? toolsets : []).filter(t => t?.enabled)
+  const mcp = summary?.mcp ?? []
+
+  // Auto-compact point: the profile's threshold share of the window, capped by threshold_tokens.
+  const comp = summary?.compression
+  const compactAt = comp?.enabled && max ? Math.min(comp.threshold * max, comp.threshold_tokens ?? Infinity) : 0
+
+  // Outputs: files this chat wrote or patched, newest first, once each.
+  const outputs = []
+  for (const m of [...(history?.messages ?? [])].reverse()) {
+    const path = m?.role === 'tool' && (m.name === 'write_file' || m.name === 'patch') ? m.args?.path : null
+
+    if (path && !outputs.some(o => o.path === path)) {
+      outputs.push({ path, edited: m.name === 'patch' })
+    }
+  }
   const running = procs.filter(p => p.status !== 'exited')
   const busyChats = Object.values(busyBySession).filter(Boolean).length
 
@@ -229,6 +250,9 @@ function SessionPanel() {
                 })
               : null
           })(),
+          compactAt
+            ? jsx('div', { key: 'auto', style: { ...s.dim, marginTop: '4px' }, children: used < compactAt ? `${fmt(compactAt - used)} until auto-compact` : 'Auto-compact due on the next turn' })
+            : null,
           sessionId
             ? jsx('button', { key: 'compact', type: 'button', style: s.button, disabled: compacting, onClick: compact, children: compacting ? 'Compacting…' : 'Compact session' })
             : null
@@ -237,14 +261,36 @@ function SessionPanel() {
       jsx(Card, {
         id: 'connectors',
         title: 'Connectors',
-        aside: toolsets ? `${enabledToolsets.length} on` : null,
+        aside: summary ? `${mcp.filter(m => m.enabled).length} on` : null,
         children: [
-          ...enabledToolsets.slice(0, 8).map((t, i) => Line(`t${i}`, 'plug', Text(t.label || t.name), t.description)),
-          enabledToolsets.length > 8 ? jsx('div', { key: 'more', style: s.dim, children: `and ${enabledToolsets.length - 8} more` }) : null,
+          ...mcp.map((m, i) =>
+            Line(`m${i}`, m.kind === 'remote' ? 'globe' : 'server', [Text(m.name, m.enabled ? undefined : s.dim), m.enabled ? null : jsx('span', { style: s.num, children: 'off' })])
+          ),
+          summary && mcp.length === 0 ? jsx('div', { key: 'nomcp', style: s.dim, children: 'No MCP servers' }) : null,
+          toolsets ? Line('builtin', 'tools', [Text('Built-in tools', s.dim), jsx('span', { style: s.num, children: `${enabledToolsets.length} on` })], enabledToolsets.map(t => t.label || t.name).join(', ')) : null,
           Link('manage', 'Manage connectors', '/capabilities')
         ]
       }),
-      jsx(Card, { id: 'outputs', title: 'Outputs', children: Link('artifacts', 'Open artifacts', '/artifacts') }),
+      jsx(Card, {
+        id: 'outputs',
+        title: 'Outputs',
+        aside: outputs.length ? String(outputs.length) : null,
+        children: [
+          ...outputs.slice(0, 8).map((o, i) =>
+            jsxs('button', {
+              key: `o${i}`,
+              type: 'button',
+              style: { ...s.line, background: 'none', border: 0, cursor: 'pointer', textAlign: 'left', width: '100%' },
+              title: `${o.path}\nClick to show in the file manager`,
+              onClick: () => pluginCtx?.os.revealPath(o.path),
+              children: [jsx(Codicon, { name: 'file', size: 13, style: s.icon }), Text(base(o.path)), jsx('span', { style: s.num, children: o.edited ? 'edited' : 'written' })]
+            })
+          ),
+          outputs.length > 8 ? jsx('div', { key: 'more', style: s.dim, children: `and ${outputs.length - 8} more` }) : null,
+          history && outputs.length === 0 ? jsx('div', { key: 'none', style: s.dim, children: 'No files written in this chat' }) : null,
+          Link('artifacts', 'Open artifacts', '/artifacts')
+        ]
+      }),
       jsx(Card, {
         id: 'changes',
         title: 'Changes',
