@@ -1,4 +1,4 @@
-# Draft pull request — not opened
+# Pull request — opened 17 Oct 2026: https://github.com/NousResearch/hermes-agent/pull/140634
 
 **Branch:** `fix/desktop-minimized-rail-pins-main-column` (local checkout:
 `~/dev/hermes-agent-fix`, one commit on main at 18c525b6)
