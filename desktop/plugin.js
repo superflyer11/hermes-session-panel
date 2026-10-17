@@ -9,7 +9,7 @@ const POLL_MS = 5000
 
 const s = {
   root: { height: '100%', overflow: 'auto', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' },
-  card: { border: '1px solid var(--ui-border, var(--border))', borderRadius: '10px', padding: '10px 12px' },
+  card: { border: '1px solid var(--border, #2c2c2c)', borderRadius: '10px', padding: '10px 12px' },
   head: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: '13px', fontWeight: 500, marginBottom: '6px', color: 'var(--ui-text-primary)' },
   row: { display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '12.5px', padding: '2px 0', minWidth: 0 },
   key: { color: 'var(--ui-text-tertiary)', flexShrink: 0 },
@@ -82,6 +82,36 @@ function useProcesses(sessionId) {
   return procs
 }
 
+let pluginCtx = null
+
+// Poll an async source while the pane is mounted; `key` changes refetch at once.
+function usePoll(fetcher, key, ms = POLL_MS) {
+  const [data, setData] = useState(null)
+
+  useEffect(() => {
+    let live = true
+    const run = () =>
+      Promise.resolve()
+        .then(fetcher)
+        .then(d => live && setData(d ?? null))
+        .catch(() => live && setData(null))
+
+    run()
+    const timer = setInterval(run, ms)
+
+    return () => {
+      live = false
+      clearInterval(timer)
+    }
+  }, [key])
+
+  return data
+}
+
+const STATUS_MARK = { modified: 'M', added: 'A', deleted: 'D', renamed: 'R', untracked: 'U' }
+const fmt = n => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n))
+const base = p => (p ? p.split('/').filter(Boolean).pop() : '')
+
 function SessionPanel() {
   const focusedProfile = useValue(host.state.focusedSessionProfile)
   const activeProfile = useValue(host.state.profile)
@@ -94,6 +124,17 @@ function SessionPanel() {
   const busyBySession = useValue(host.state.busyBySession) || {}
   const toolsets = useToolsetCount(profile)
   const procs = useProcesses(sessionId)
+  const project = usePoll(() => (cwd ? host.request('projects.for_cwd', { cwd }) : null), cwd, 30000)
+  const breakdown = usePoll(
+    () => (sessionId ? host.request('session.context_breakdown', { session_id: sessionId }) : null),
+    `${sessionId}:${usage?.context_used ?? 0}`,
+    60000
+  )
+  const changes = usePoll(
+    () => (cwd && pluginCtx ? pluginCtx.rest(`/changes?path=${encodeURIComponent(cwd)}`) : null),
+    cwd,
+    10000
+  )
 
   const pct = typeof usage?.context_percent === 'number' ? Math.round(usage.context_percent) : null
   const running = procs.filter(p => p.status !== 'exited')
@@ -107,13 +148,77 @@ function SessionPanel() {
         children: [Row('Profile', profile), Row('Folder', shortPath(cwd), cwd), Row('Model', model), Row('Gateway', gateway)]
       }),
       jsx(Card, {
+        title: 'Folders',
+        aside: project?.branch || null,
+        children: (() => {
+          const folders = project?.project?.folders ?? []
+
+          if (folders.length === 0) {
+            return jsx('div', { style: s.dim, children: cwd ? shortPath(cwd) : 'No folder' })
+          }
+
+          return [...folders]
+            .sort((a, b) => Number(b.is_primary) - Number(a.is_primary))
+            .map((f, i) => Row(f.is_primary ? 'Primary' : f.label || base(f.path), shortPath(f.path), f.path, `f${i}`))
+        })()
+      }),
+      jsx(Card, {
+        title: 'Changes',
+        aside: changes?.repo ? `${changes.total} file${changes.total === 1 ? '' : 's'}` : null,
+        children: !changes?.repo
+          ? jsx('div', { style: s.dim, children: changes ? 'Not a git folder' : '—' })
+          : changes.total === 0
+            ? jsx('div', { style: s.dim, children: 'No uncommitted changes' })
+            : [
+                ...changes.files.slice(0, 8).map((f, i) =>
+                  jsxs('div', {
+                    key: `c${i}`,
+                    style: s.row,
+                    title: f.path,
+                    children: [
+                      jsx('span', { style: { ...s.val, textAlign: 'left' }, children: `${STATUS_MARK[f.status] ?? '•'}  ${f.path}` }),
+                      jsxs('span', {
+                        style: { flexShrink: 0, fontSize: '12px' },
+                        children: [
+                          jsx('span', { style: { color: '#7fb77e' }, children: f.added ? `+${f.added} ` : '' }),
+                          jsx('span', { style: { color: '#e06c75' }, children: f.removed ? `−${f.removed}` : '' })
+                        ]
+                      })
+                    ]
+                  })
+                ),
+                changes.total > 8 ? jsx('div', { key: 'more', style: s.dim, children: `and ${changes.total - 8} more` }) : null,
+                jsx('div', { key: 'hint', style: { ...s.dim, marginTop: '6px' }, children: 'Ctrl+G opens Review' })
+              ]
+      }),
+      jsx(Card, {
         title: 'Context',
         aside: pct === null ? '—' : `${pct}%`,
         children: [
           jsx('div', { key: 'bar', style: s.track, children: jsx('div', { style: { width: `${pct ?? 0}%`, height: '100%', background: 'var(--midground, var(--ring))' } }) }),
           usage?.context_used
             ? jsx('div', { key: 'n', style: { ...s.dim, marginTop: '6px' }, children: `${usage.context_used.toLocaleString()} of ${(usage.context_max ?? 0).toLocaleString()} tokens` })
-            : null
+            : null,
+          ...(breakdown?.categories ?? []).map((c, i) =>
+            jsxs('div', {
+              key: `k${i}`,
+              style: s.row,
+              children: [
+                jsxs('span', {
+                  style: s.key,
+                  children: [jsx('span', { style: { display: 'inline-block', width: '7px', height: '7px', borderRadius: '2px', background: c.color || 'var(--ui-text-tertiary)', marginRight: '6px' } }), c.label]
+                }),
+                jsx('span', { style: s.val, children: fmt(c.tokens ?? 0) })
+              ]
+            })
+          ),
+          (() => {
+            const loaded = (breakdown?.context_files ?? []).filter(f => f.loaded)
+
+            return loaded.length
+              ? jsx('div', { key: 'files', style: { ...s.dim, marginTop: '6px' }, title: loaded.map(f => f.path).join('\n'), children: `Instruction files: ${loaded.map(f => base(f.path) || f.label).join(', ')}` })
+              : null
+          })()
         ]
       }),
       jsx(Card, {
@@ -141,6 +246,10 @@ export default {
   id: 'session-panel',
   name: 'Session panel',
   register(ctx) {
+    pluginCtx = ctx
+    ctx.onDispose(() => {
+      pluginCtx = null
+    })
     ctx.register({
       id: 'panel',
       area: 'panes',
