@@ -1,4 +1,4 @@
-# Draft issue 2 (bug) — not posted
+# Issue 2 (bug) — posted 17 Oct 2026: https://github.com/NousResearch/hermes-agent/issues/140633
 
 **Title:** desktop (Linux/Wayland): UI renders washed out on an HDR monitor when the NVIDIA SwiftShader fallback is active
 

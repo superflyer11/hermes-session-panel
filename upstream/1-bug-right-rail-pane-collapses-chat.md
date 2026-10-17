@@ -1,4 +1,4 @@
-# Draft issue 1 (bug) — not posted
+# Issue 1 (bug) — posted 17 Oct 2026: https://github.com/NousResearch/hermes-agent/issues/140632
 
 **Title:** desktop: a right-rail plugin pane without maxWidth collapses the chat column to 28px when the terminal rail is minimized
 
