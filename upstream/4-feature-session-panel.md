@@ -1,4 +1,4 @@
-# Draft issue 4 (feature request) — not posted
+# Issue 4 (feature request) — posted 17 Oct 2026: https://github.com/NousResearch/hermes-agent/issues/140637
 
 **Title:** desktop: a session context panel (environment, context, connectors, outputs, background tasks)
 
