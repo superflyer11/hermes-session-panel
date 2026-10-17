@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Session panel mock-up</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #151515; --raised: #20201f; --border: #2c2c2c; --accent: #d97757;
+    --t1: #f0efec; --t2: #c3c2b7; --t3: #a6a5a3; --t4: #6c6b68;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1440px; height: 860px; background: var(--bg); color: var(--t1); font: 14px/1.5 Inter, "Noto Sans", sans-serif; display: flex; overflow: hidden; }
+  .side { width: 270px; border-right: 1px solid var(--border); padding: 16px 12px; }
+  .side .new { font-weight: 500; padding: 6px 8px; margin-bottom: 14px; }
+  .label { color: var(--t4); font-size: 12px; padding: 10px 8px 4px; }
+  .row { padding: 7px 8px; border-radius: 8px; color: var(--t2); font-size: 13.5px; display: flex; justify-content: space-between; }
+  .row span:last-child { color: var(--t4); font-size: 12px; }
+  .row.active { background: #262625; color: var(--t1); }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 3px; background: var(--accent); margin-right: 8px; vertical-align: middle; }
+  .main { flex: 1; display: flex; flex-direction: column; padding: 28px 56px 20px; }
+  .msgs { flex: 1; display: flex; flex-direction: column; gap: 18px; max-width: 760px; margin: 0 auto; width: 100%; }
+  .user { align-self: flex-end; background: var(--raised); padding: 10px 14px; border-radius: 12px; max-width: 70%; }
+  .step { color: var(--t3); font-size: 13px; }
+  .step code, .bot code { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: var(--raised); padding: 1px 5px; border-radius: 4px; }
+  .bot { color: var(--t1); }
+  .composer { max-width: 760px; margin: 0 auto; width: 100%; border: 1px solid #4c4c4b; background: var(--raised); border-radius: 12px; padding: 14px 16px; color: var(--t4); display: flex; justify-content: space-between; }
+  .panel { width: 300px; border-left: 1px solid var(--border); padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .tabs { display: flex; gap: 18px; font-size: 13px; color: var(--t3); padding: 0 4px 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+  .tabs .on { color: var(--t1); border-bottom: 2px solid var(--accent); padding-bottom: 6px; margin-bottom: -9px; }
+  .card { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+  .head { display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+  .head span:last-child { color: var(--t3); font-weight: 400; }
+  .kv { display: flex; justify-content: space-between; font-size: 12.5px; padding: 2px 0; }
+  .kv span:first-child { color: var(--t3); }
+  .kv span:last-child { color: var(--t2); }
+  .track { height: 4px; border-radius: 2px; background: #272726; margin-top: 4px; overflow: hidden; }
+  .track div { width: 34%; height: 100%; background: var(--accent); }
+  .dim { color: var(--t3); font-size: 12px; margin-top: 6px; }
+  .link { color: var(--t3); font-size: 12px; }
+  .ok { color: #7fb77e; } .run { color: var(--accent); }
+  .caption { position: absolute; top: 8px; right: 316px; color: var(--t4); font-size: 11px; }
+</style>
+</head>
+<body>
+  <aside class="side">
+    <div class="new">New session</div>
+    <div class="label">demo-app</div>
+    <div class="row active"><span><i class="dot"></i>Fix login redirect</span><span>2m</span></div>
+    <div class="row"><span>Add CSV export</span><span>1h</span></div>
+    <div class="row"><span>Upgrade test runner</span><span>3d</span></div>
+    <div class="label">docs-site</div>
+    <div class="row"><span>Rewrite install guide</span><span>5d</span></div>
+  </aside>
+  <main class="main">
+    <div class="msgs">
+      <div class="user">The login page sends users back to / instead of where they started. Can you fix it?</div>
+      <div class="step">Read <code>src/auth/redirect.ts</code> · ran <code>npm test -- auth</code></div>
+      <div class="bot">The redirect target was dropped when the session cookie was refreshed. I now keep <code>returnTo</code> through the refresh and added a test for it. The dev server is still running so you can try it.</div>
+    </div>
+    <div class="composer"><span>Reply…</span><span>example-model · Medium</span></div>
+  </main>
+  <aside class="panel">
+    <div class="tabs"><span class="on">Session</span><span>Files</span><span>Review</span></div>
+    <section class="card">
+      <div class="head"><span>Environment</span></div>
+      <div class="kv"><span>Profile</span><span>default</span></div>
+      <div class="kv"><span>Folder</span><span>~/projects/demo-app</span></div>
+      <div class="kv"><span>Model</span><span>example-model</span></div>
+      <div class="kv"><span>Gateway</span><span>open</span></div>
+    </section>
+    <section class="card">
+      <div class="head"><span>Context</span><span>34%</span></div>
+      <div class="track"><div></div></div>
+      <div class="dim">68,000 of 200,000 tokens</div>
+    </section>
+    <section class="card">
+      <div class="head"><span>Connectors</span><span>12 toolsets on</span></div>
+      <div class="kv"><span>GitHub</span><span class="ok">connected</span></div>
+      <div class="kv"><span>Browser</span><span class="ok">connected</span></div>
+      <div class="link">Manage connectors</div>
+    </section>
+    <section class="card">
+      <div class="head"><span>Outputs</span><span>2</span></div>
+      <div class="kv"><span>redirect.ts</span><span>edited</span></div>
+      <div class="kv"><span>redirect.test.ts</span><span>new</span></div>
+      <div class="link">Open artifacts</div>
+    </section>
+    <section class="card">
+      <div class="head"><span>Background tasks</span><span>1 running</span></div>
+      <div class="kv"><span class="run">running</span><span>npm run dev</span></div>
+      <div class="kv"><span class="ok">done</span><span>npm test -- auth</span></div>
+    </section>
+  </aside>
+  <div class="caption">Mock-up with example data</div>
+</body>
+</html>
