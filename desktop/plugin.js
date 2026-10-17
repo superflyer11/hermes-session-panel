@@ -149,7 +149,7 @@ export default {
       // sessions sidebar. maxWidth keeps the zone a capped track; without it the
       // zone becomes the layout's leftover absorber and, on Hermes <= 0.22.2,
       // squeezes the chat.
-      data: { placement: 'right', dock: { pane: 'files', pos: 'center' }, width: '280px', minWidth: '14rem', maxWidth: '24rem' },
+      data: { placement: 'right', dock: { pane: 'files', pos: 'center' }, width: '280px', minWidth: '14rem', maxWidth: '40rem' },
       render: () => jsx(SessionPanel, {})
     })
   }
