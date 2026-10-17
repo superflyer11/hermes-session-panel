@@ -1,0 +1,6 @@
+name: session-panel
+version: "0.1.0"
+description: Right-rail Session pane for Hermes Desktop with the focused chat's environment, context use, connectors, outputs and background tasks.
+author: superflyer11
+provides_tools: []
+provides_hooks: []
