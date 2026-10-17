@@ -7,7 +7,7 @@
 
 ## Summary
 
-Fixes #<issue 1>. `fixedTrackSize` counted a minimized zone as a 1.75rem
+Fixes #140632. `fixedTrackSize` counted a minimized zone as a 1.75rem
 track on both axes. With the terminal minimized under the chat (Basic
 layout), the main column became a fixed 1.75rem track across the row axis,
 so any uncapped right-rail pane became the absorber and the chat collapsed
