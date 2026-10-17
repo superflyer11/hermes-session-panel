@@ -142,12 +142,14 @@ export default {
   name: 'Session panel',
   register(ctx) {
     ctx.register({
-      id: 'pane',
+      id: 'panel',
       area: 'panes',
       title: 'Session',
-      // maxWidth keeps the zone a capped track. Without it the zone becomes the
-      // layout's leftover absorber and, on Hermes <= 0.22.2, squeezes the chat.
-      data: { placement: 'right', width: '280px', minWidth: '14rem', maxWidth: '24rem' },
+      // Dock as a tab beside Files: placement alone can land the pane in the
+      // sessions sidebar. maxWidth keeps the zone a capped track; without it the
+      // zone becomes the layout's leftover absorber and, on Hermes <= 0.22.2,
+      // squeezes the chat.
+      data: { placement: 'right', dock: { pane: 'files', pos: 'center' }, width: '280px', minWidth: '14rem', maxWidth: '24rem' },
       render: () => jsx(SessionPanel, {})
     })
   }
