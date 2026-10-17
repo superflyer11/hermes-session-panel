@@ -23,3 +23,5 @@ rail is hidden.
 The pane declares `maxWidth`. On Hermes 0.22.2 and earlier a right-rail pane
 without one squeezes the chat to 28 px when the terminal rail is minimized.
 `upstream/` holds the drafted bug reports and the feature request.
+
+Upstream: bug reports NousResearch/hermes-agent#140632 and #140633, fix PR #140634, feature request #140637.
